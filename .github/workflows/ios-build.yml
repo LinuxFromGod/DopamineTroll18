@@ -1,41 +1,75 @@
-name: iOS Build
+name: iOS Build (IPA)
 
 on:
   push:
-    branches: ["main"]
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 jobs:
-  build-simulator:
-    name: Build iOS Simulator app
+  build-ipa:
     runs-on: macos-15
     steps:
-      - name: Check out source
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Show Xcode version
         run: xcodebuild -version
 
-      - name: Build for iOS Simulator
+      - name: Detect Xcode project and scheme
+        id: detect
         run: |
-          xcodebuild \
-            -project FakeDopamine.xcodeproj \
-            -scheme FakeDopamine \
+          set -e
+          # Ищем .xcodeproj (если несколько — берём первый)
+          PROJECT=$(ls -d *.xcodeproj 2>/dev/null | head -n1)
+          if [ -z "$PROJECT" ]; then
+            echo "::error::Не найден .xcodeproj в корне репозитория"
+            exit 1
+          fi
+          PROJECT_NAME=$(basename "$PROJECT" .xcodeproj)
+          echo "project=$PROJECT" >> $GITHUB_OUTPUT
+          echo "project_name=$PROJECT_NAME" >> $GITHUB_OUTPUT
+
+          # Получаем список схем и берём первую (обычно совпадает с именем проекта)
+          SCHEME=$(xcodebuild -list -project "$PROJECT" -json 2>/dev/null \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['project']['schemes'][0])")
+          echo "scheme=$SCHEME" >> $GITHUB_OUTPUT
+          echo "Detected project: $PROJECT, scheme: $SCHEME"
+
+      - name: Build unsigned archive for iOS
+        run: |
+          xcodebuild archive \
+            -project "${{ steps.detect.outputs.project }}" \
+            -scheme "${{ steps.detect.outputs.scheme }}" \
             -configuration Release \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
             -derivedDataPath "$RUNNER_TEMP/DerivedData" \
             CODE_SIGNING_ALLOWED=NO \
-            build
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
 
-      - name: Upload simulator app
+      - name: Package into .ipa
+        run: |
+          set -e
+          APP_PATH=$(find "$RUNNER_TEMP/App.xcarchive/Products/Applications" -maxdepth 1 -name "*.app" | head -n1)
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::.app не найден в архиве"
+            exit 1
+          fi
+          APP_NAME=$(basename "$APP_PATH" .app)
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -R "$APP_PATH" "$RUNNER_TEMP/Payload/"
+          cd "$RUNNER_TEMP"
+          zip -r "${APP_NAME}.ipa" Payload/
+          echo "IPA_PATH=$RUNNER_TEMP/${APP_NAME}.ipa" >> $GITHUB_ENV
+
+      - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FakeDopamine-iOS-Simulator
-          path: ${{ runner.temp }}/DerivedData/Build/Products/Release-iphonesimulator/FakeDopamine.app
+          name: unsigned-ipa
+          path: ${{ env.IPA_PATH }}
           if-no-files-found: error
           retention-days: 14
