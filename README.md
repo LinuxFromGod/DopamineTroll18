@@ -1,6 +1,8 @@
 # FakeDopamine
 
-**DopaSlop** (автор — [LinuxFromGod](https://github.com/LinuxFromGod), Telegram:
+**LARPMINE** — «Dopamine LARP»: приложение для ларпа и статуса, как LARP-приложения
+в TrollStore (фейковые деньги и т.п.), только здесь ларп — фейковый джейлбрейк.
+Автор — [LinuxFromGod](https://github.com/LinuxFromGod), Telegram:
 [@holygentoo](https://t.me/holygentoo)) — автономное iOS-приложение, которое
 полностью **имитирует** Dopamine 3.0.13:
 реальный интерфейс, реальная последовательность логов, boot-экран, паника ядра,
@@ -70,7 +72,7 @@ workflow**. Готовый файл доступен в артефакте `unsi
 сборки под себя в Xcode выберите таргет `FakeDopamine` → **Signing &
 Capabilities**, укажите **Team** и запустите на подключённом iPhone.
 
-Дисплейное имя приложения — **DopaSlop**, имя проекта и таргета — `FakeDopamine`.
+Дисплейное имя приложения — **LARPMINE**, имя проекта и таргета — `FakeDopamine`.
 На главном экране и в кредитах указан автор; в кредитах есть ссылки на GitHub
 и Telegram.
 
