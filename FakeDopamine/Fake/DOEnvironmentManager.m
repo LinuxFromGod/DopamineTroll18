@@ -14,9 +14,16 @@
 #import <sys/sysctl.h>
 #import <sys/utsname.h>
 #import <UIKit/UIKit.h>
+#import <libproc.h>
+#import <signal.h>
+#import <string.h>
+#import <stdlib.h>
 
 #define CPUFAMILY_ARM_VORTEX_TEMPEST   0x07d34d9f
 #define CPUFAMILY_ARM_LIGHTNING_THUNDER 0x462504d2
+#define CPUFAMILY_ARM_FIRESTORM_ICESTORM 0x1b588bb3
+#define CPUFAMILY_ARM_AVALANCHE_BLIZZARD 0xda33d83d
+#define CPUFAMILY_ARM_EVEREST_SAWTOOTH  0x8765edea
 
 @implementation DOEnvironmentManager
 
@@ -94,13 +101,30 @@
 
 - (BOOL)isArm64e
 {
-    int32_t cpuType = 0;
-    size_t size = sizeof(cpuType);
-    sysctlbyname("hw.cputype", &cpuType, &size, NULL, 0);
-    int64_t abi = 0;
-    size = sizeof(abi);
-    sysctlbyname("hw.cpuABI", &abi, &size, NULL, 0);
-    return (cpuType & 0x1000000) != 0 || abi == 2;
+    // Preferred source: the kernel exports arm64e capability directly
+    // (A12 and newer, including future chips).
+    int32_t arm64e = 0;
+    size_t size = sizeof(arm64e);
+    if (sysctlbyname("hw.optional.arm64e", &arm64e, &size, NULL, 0) == 0 && size == sizeof(arm64e)) {
+        return arm64e != 0;
+    }
+
+    // Fallback: cpu families that ship with arm64e. hw.cputype cannot be used
+    // here — the CPU_ARCH_ABI64 bit is set on every 64-bit device, not just
+    // arm64e ones.
+    cpu_subtype_t cpuFamily = 0;
+    size = sizeof(cpuFamily);
+    sysctlbyname("hw.cpufamily", &cpuFamily, &size, NULL, 0);
+    switch (cpuFamily) {
+        case CPUFAMILY_ARM_VORTEX_TEMPEST:      // A12 / A12X / A12Z
+        case CPUFAMILY_ARM_LIGHTNING_THUNDER:   // A13
+        case CPUFAMILY_ARM_FIRESTORM_ICESTORM:  // A14 / M1
+        case CPUFAMILY_ARM_AVALANCHE_BLIZZARD:  // A15 / M2
+        case CPUFAMILY_ARM_EVEREST_SAWTOOTH:    // A16 / A17 Pro
+            return YES;
+        default:
+            return NO;
+    }
 }
 
 - (BOOL)isSPTM
@@ -112,34 +136,64 @@
 
 - (NSString *)versionSupportString
 {
-    cpu_subtype_t cpuFamily = 0;
-    size_t cpuFamilySize = sizeof(cpuFamily);
-    sysctlbyname("hw.cpufamily", &cpuFamily, &cpuFamilySize, NULL, 0);
-
     if ([self isArm64e]) {
-        if (cpuFamily == CPUFAMILY_ARM_VORTEX_TEMPEST || cpuFamily == CPUFAMILY_ARM_LIGHTNING_THUNDER) {
-            return @"iOS 15.0 - 18.7.1, 26.0 - 26.0.1 (A12/A13, PPL)";
-        }
-        else if (![self isSPTM]) {
-            return @"iOS 15.0 - 17.3.1 (PPL)";
-        }
-        else {
-            return @"iOS 17.0 - 17.3.1 (SPTM)";
-        }
+        // PPL devices up to iOS 16.x, SPTM devices from iOS 17 through 27.x
+        return [self isSPTM] ? @"iOS 15.0 - 27.3 (SPTM)" : @"iOS 15.0 - 27.3 (PPL)";
     }
     else {
+        // A9/A10-class devices top out before the SPTM era
         return @"iOS 15.0 - 16.6.1 (bypasses)";
     }
 }
 
-#pragma mark - Fake power actions
+#pragma mark - Power actions
 
-// These are visual simulations driven by the UI layer; the methods only
-// exist so call sites keep the shape of the original code.
+// reboot/rebootUserspace stay visual simulations driven by the UI layer;
+// respring attempts the real thing when the environment allows it.
 
-- (void)respring {}
+- (void)respring
+{
+    // The only action that can be done for real from an app: signal
+    // SpringBoard and let launchd bring it back. Under TrollStore or a real
+    // jailbreak this performs an actual respring; everywhere else it is a
+    // no-op and the UI layer falls back to the in-app simulation.
+    [self performRealRespring];
+}
+
 - (void)rebootUserspace {}
 - (void)reboot {}
+
+- (BOOL)performRealRespring
+{
+    pid_t springboardPid = 0;
+
+    int pidCount = proc_listallpids(NULL, 0);
+    if (pidCount <= 0)
+        return NO;
+
+    pid_t *pids = malloc(sizeof(pid_t) * pidCount);
+    if (!pids)
+        return NO;
+
+    int listed = proc_listallpids(pids, pidCount * sizeof(pid_t));
+    for (int i = 0; i < listed; i++) {
+        char path[PROC_PIDPATHINFO_MAXSIZE];
+        if (proc_pidpath(pids[i], path, sizeof(path)) <= 0)
+            continue;
+        if (strcmp(path, "/System/Library/CoreServices/SpringBoard.app/SpringBoard") == 0) {
+            springboardPid = pids[i];
+            break;
+        }
+    }
+    free(pids);
+
+    if (springboardPid <= 0)
+        return NO;
+
+    // Killing SpringBoard is safe: launchd relaunches it immediately, which
+    // is exactly what the "respring" of a real jailbreak does.
+    return kill(springboardPid, SIGKILL) == 0;
+}
 
 - (BOOL)isJailbreakHidden
 {

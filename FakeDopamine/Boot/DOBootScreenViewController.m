@@ -110,16 +110,47 @@
 {
     [self.view layoutIfNeeded];
 
-    __weak typeof(self) weakSelf = self;
-    self.progressFillWidth.constant = self.progressTrack.bounds.size.width;
+    // Real boot progress advances in uneven chunks with occasional stalls,
+    // not in one linear sweep. Build a random schedule of chunk durations
+    // that still spans the requested boot time, then animate segment by
+    // segment.
+    NSUInteger chunkCount = 6 + arc4random_uniform(4);
+    NSMutableArray<NSNumber *> *weights = [NSMutableArray new];
+    double weightTotal = 0;
+    for (NSUInteger i = 0; i < chunkCount; i++) {
+        // Skewed weights make some chunks stall noticeably longer
+        double weight = 0.6 + (double)arc4random() / UINT32_MAX * 1.8;
+        weightTotal += weight;
+        [weights addObject:@(weight)];
+    }
 
-    [UIView animateWithDuration:self.duration delay:0 options:UIViewAnimationOptionCurveLinear animations:^{
-        [weakSelf.view layoutIfNeeded];
-    } completion:^(BOOL finished) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.8 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-            [weakSelf finish];
+    CGFloat trackWidth = self.progressTrack.bounds.size.width;
+    __weak typeof(self) weakSelf = self;
+
+    __block double cumulativeTime = 0;
+    __block double fraction = 0;
+    for (NSUInteger i = 0; i < chunkCount; i++) {
+        double chunkDuration = self.duration * (weights[i].doubleValue / weightTotal);
+        double segmentStart = cumulativeTime;
+        cumulativeTime += chunkDuration;
+        fraction = (i + 1 == chunkCount)
+            ? 1.0
+            : MIN(0.96, fraction + (1.0 / chunkCount) * (0.85 + (double)arc4random() / UINT32_MAX * 0.3));
+        double targetFraction = fraction;
+
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(segmentStart * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            if (!weakSelf)
+                return;
+            weakSelf.progressFillWidth.constant = trackWidth * targetFraction;
+            [UIView animateWithDuration:chunkDuration delay:0 options:UIViewAnimationOptionCurveEaseInOut | UIViewAnimationOptionBeginFromCurrentState animations:^{
+                [weakSelf.view layoutIfNeeded];
+            } completion:nil];
         });
-    }];
+    }
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((cumulativeTime + 0.8) * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [weakSelf finish];
+    });
 }
 
 - (void)finish

@@ -150,8 +150,11 @@ static const double kHiccupChance = 0.15;
     BOOL isArm64e = [[DOEnvironmentManager sharedManager] isArm64e];
 
     if (removeJailbreakEnabled) {
-        // Fake removal flow
+        // Fake removal flow: wipe the "bootstrap" including the package
+        // manager choice, so the next run goes through bootstrap extraction
+        // again, exactly like a real removal
         [self visibleStep:DOLocalizedString(@"Removing Jailbreak") forDuration:4.0];
+        [[DOUIManager sharedInstance] resetPackageManagers];
         [prefManager setPreferenceValue:@NO forKey:@"removeJailbreakEnabled"];
         [prefManager removePreferenceValueForKey:@"fakeJailbroken"];
         [prefManager removePreferenceValueForKey:@"fakeBootstrapped"];

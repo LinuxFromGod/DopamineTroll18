@@ -94,6 +94,11 @@
         }],
         [UIAction actionWithTitle:DOLocalizedString(@"Menu_Restart_SpringBoard_Title") image:[UIImage systemImageNamed:@"arrow.clockwise" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]] identifier:@"respring" handler:^(__kindof UIAction * _Nonnull action) {
             [self fadeToBlack:^{
+                // Real respring where the environment allows signaling
+                // SpringBoard (TrollStore/jailbreak); the simulated relaunch
+                // still runs so the app comes back looking normal after the
+                // respring
+                [[DOEnvironmentManager sharedManager] performRealRespring];
                 [self simulateRespring];
             }];
         }],
@@ -138,6 +143,9 @@
         jailbreakButtonImage = [UIImage systemImageNamed:@"lock.slash" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]];
     
     self.jailbreakBtn = [[DOJailbreakButton alloc] initWithAction: [UIAction actionWithTitle:jailbreakButtonTitle image:jailbreakButtonImage identifier:@"jailbreak" handler:^(__kindof UIAction * _Nonnull action) {
+        UIImpactFeedbackGenerator *haptic = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleMedium];
+        [haptic impactOccurred];
+
         [actionView hide];
         [self.jailbreakBtn expandButton: self.jailbreakButtonConstraints];
 
@@ -207,7 +215,14 @@
             else if (didRemove) {
                 UIAlertController *alertController = [UIAlertController alertControllerWithTitle:DOLocalizedString(@"Removed_Jailbreak_Alert_Title") message:DOLocalizedString(@"Removed_Jailbreak_Alert_Message") preferredStyle:UIAlertControllerStyleAlert];
                 UIAlertAction *rebootAction = [UIAlertAction actionWithTitle:DOLocalizedString(@"Button_Close") style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-                    exit(0);
+                    // The removal ends with a userspace reboot, like the real
+                    // app; real respring where the environment allows it
+                    [DOBootScreenViewController presentBootWithDuration:4.0 completion:^{
+                        // Real respring where possible, then rebuild the UI
+                        // so the app looks right after either path
+                        [[DOEnvironmentManager sharedManager] performRealRespring];
+                        [DOSceneDelegate relaunch];
+                    }];
                 }];
                 [alertController addAction:rebootAction];
                 [self presentViewController:alertController animated:YES completion:nil];
@@ -237,6 +252,9 @@
     void (^relaunchBlock)(void) = ^{
         // A simulated panic reboots the device, which clears the jailbroken state
         [[DOEnvironmentManager sharedManager] setJailbroken:!shouldPanic withVersion:nil];
+        // End of the "jailbreak": attempt a real respring (TrollStore/jailbreak
+        // environments), then rebuild the app UI for either outcome
+        [[DOEnvironmentManager sharedManager] performRealRespring];
         [DOSceneDelegate relaunch];
     };
 

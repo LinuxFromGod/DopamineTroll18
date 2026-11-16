@@ -37,6 +37,12 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)rebootUserspace;
 - (void)reboot;
 
+// Attempts a real SpringBoard restart (works under TrollStore or a real
+// jailbreak, where the sandbox permits signaling SpringBoard). Returns YES
+// when the signal was delivered; NO means the environment blocked it and the
+// caller's simulated path is the only thing the user will see.
+- (BOOL)performRealRespring;
+
 - (BOOL)isJailbreakHidden;
 - (void)setJailbreakHidden:(BOOL)hidden;
 
