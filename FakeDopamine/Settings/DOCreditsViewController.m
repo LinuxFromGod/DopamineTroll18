@@ -34,7 +34,7 @@
     ]];
 
     UILabel *versionLabel = [[UILabel alloc] init];
-    versionLabel.text = [NSString stringWithFormat:@"Dopamine %@ - Simulation", [[DOEnvironmentManager sharedManager] appVersionDisplayString]];
+    versionLabel.text = [NSString stringWithFormat:@"DopaSlop %@ - Simulation by LinuxFromGod", [[DOEnvironmentManager sharedManager] appVersionDisplayString]];
     versionLabel.font = [UIFont systemFontOfSize:15 weight:UIFontWeightMedium];
     versionLabel.textColor = [UIColor whiteColor];
     versionLabel.textAlignment = NSTextAlignmentCenter;
@@ -64,6 +64,8 @@
     // Ordered array instead of a dictionary: dictionary enumeration order is
     // random, which made the credits list reorder on every launch.
     NSArray<NSDictionary *> *people = @[
+        @{ @"name": @"LinuxFromGod", @"role": @"DopaSlop", @"url": @"https://github.com/LinuxFromGod" },
+        @{ @"name": @"@holygentoo", @"role": @"Telegram", @"url": @"https://t.me/holygentoo" },
         @{ @"name": @"opa334", @"role": @"Dopamine", @"url": @"https://github.com/opa334" },
         @{ @"name": @"tomt000", @"role": @"UI design", @"url": @"https://github.com/tomt000" },
         @{ @"name": @"@xina520", @"role": @"weightBufs base", @"url": @"https://github.com/xina520" },

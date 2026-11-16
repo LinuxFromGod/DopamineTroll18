@@ -14,11 +14,15 @@
 #import <sys/sysctl.h>
 #import <sys/utsname.h>
 #import <UIKit/UIKit.h>
-#import <libproc.h>
 #import <signal.h>
 #import <string.h>
 #import <stdlib.h>
 
+// libproc.h is not exposed by the iOS SDK, but the functions live in
+// libSystem, so the two used for respring are declared by hand.
+extern int proc_listallpids(void *buffer, int buffersize);
+extern int proc_pidpath(pid_t pid, void *pathbuffer, uint32_t pathbufferlen);
+#define PROC_PIDPATHINFO_MAXSIZE (4 * 1024)
 #define CPUFAMILY_ARM_VORTEX_TEMPEST   0x07d34d9f
 #define CPUFAMILY_ARM_LIGHTNING_THUNDER 0x462504d2
 #define CPUFAMILY_ARM_FIRESTORM_ICESTORM 0x1b588bb3
