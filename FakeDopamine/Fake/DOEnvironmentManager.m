@@ -23,7 +23,7 @@
 extern int proc_listallpids(void *buffer, int buffersize);
 extern int proc_pidpath(pid_t pid, void *pathbuffer, uint32_t pathbufferlen);
 #define PROC_PIDPATHINFO_MAXSIZE (4 * 1024)
-#define CPUFAMILY_ARM_VORTEX_TEMPEST   0x07d34d9f
+#define CPUFAMILY_ARM_VORTEX_TEMPEST    0x07d34d9f
 #define CPUFAMILY_ARM_LIGHTNING_THUNDER 0x462504d2
 #define CPUFAMILY_ARM_FIRESTORM_ICESTORM 0x1b588bb3
 #define CPUFAMILY_ARM_AVALANCHE_BLIZZARD 0xda33d83d
@@ -120,11 +120,11 @@ extern int proc_pidpath(pid_t pid, void *pathbuffer, uint32_t pathbufferlen);
     size = sizeof(cpuFamily);
     sysctlbyname("hw.cpufamily", &cpuFamily, &size, NULL, 0);
     switch (cpuFamily) {
-        case CPUFAMILY_ARM_VORTEX_TEMPEST:      // A12 / A12X / A12Z
-        case CPUFAMILY_ARM_LIGHTNING_THUNDER:   // A13
-        case CPUFAMILY_ARM_FIRESTORM_ICESTORM:  // A14 / M1
-        case CPUFAMILY_ARM_AVALANCHE_BLIZZARD:  // A15 / M2
-        case CPUFAMILY_ARM_EVEREST_SAWTOOTH:    // A16 / A17 Pro
+        case CPUFAMILY_ARM_VORTEX_TEMPEST:       // A12 / A12X / A12Z
+        case CPUFAMILY_ARM_LIGHTNING_THUNDER:    // A13
+        case CPUFAMILY_ARM_FIRESTORM_ICESTORM:   // A14 / M1
+        case CPUFAMILY_ARM_AVALANCHE_BLIZZARD:   // A15 / M2
+        case CPUFAMILY_ARM_EVEREST_SAWTOOTH:     // A16 / A17 Pro
             return YES;
         default:
             return NO;
