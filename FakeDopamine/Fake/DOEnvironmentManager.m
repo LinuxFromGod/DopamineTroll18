@@ -140,10 +140,7 @@ extern int proc_pidpath(pid_t pid, void *pathbuffer, uint32_t pathbufferlen);
 
 - (NSString *)versionSupportString
 {
-        // PPL devices up to iOS 16.x, SPTM devices from iOS 17 through 27.x
-        return [self isSPTM] ? @"iOS 15.0 - 27.3 (SPTM)" : @"iOS 15.0 - 27.3 (PPL)";
-        // A9/A10-class devices top out before the SPTM era
-    }
+    return @"iOS 15.0 - 27.3 (A9-A20)";
 }
 
 #pragma mark - Power actions
