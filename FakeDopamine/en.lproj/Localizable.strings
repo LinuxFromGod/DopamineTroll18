@@ -70,6 +70,10 @@
 "Alert_Tweak_Injection_Toggled_Body" = "A userspace reboot is neccessary to apply the changes. Do you want to do it now?";
 "Alert_Tweak_Injection_Toggled_Reboot_Now" = "Reboot Now";
 "Alert_Tweak_Injection_Toggled_Reboot_Later" = "Reboot Later";
+"Downloading Kernel" = "Downloading Kernel";
+
+"Alert_Remove_Not_Jailbroken_Title" = "Not Jailbroken";
+"Alert_Remove_Not_Jailbroken_Body" = "There is no jailbreak to remove. The device is not jailbroken.";
 "Alert_Remove_Jailbreak_Title" = "Remove Jailbreak";
 "Alert_Remove_Jailbreak_Pressed_Body" = "Removing jailbreak will delete all jailbreak-related files, but all regular apps, files and data will be kept. Are you sure you want to continue? You can't undo this action.";
 "Alert_Remove_Jailbreak_Enabled_Body" = "Enabling \"Remove Jailbreak\" will delete all jailbreak-related files on the next jailbreak, but all regular apps, files and data will be kept. Are you sure you want to continue? You can't undo this action.";

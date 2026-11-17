@@ -3,7 +3,7 @@
 **LARPMINE** — «Dopamine LARP»: приложение для ларпа и статуса, как LARP-приложения
 в TrollStore (фейковые деньги и т.п.), только здесь ларп — фейковый джейлбрейк.
 Автор — [LinuxFromGod](https://github.com/LinuxFromGod), Telegram:
-[@holygentoo](https://t.me/holygentoo)) — автономное iOS-приложение, которое
+[@holygentoo](https://t.me/holygentoo). Автономное iOS-приложение, которое
 полностью **имитирует** Dopamine 3.0.13:
 реальный интерфейс, реальная последовательность логов, boot-экран, паника ядра,
 выбор менеджера пакетов и смена темы. При этом оно **ничего не делает с системой**:
@@ -16,9 +16,19 @@
 
 ## Что умеет
 
-- Полный сценарий «джейлбрейка»: patchfinding → kernel exploit → PAC/PPL/SPTM bypass →
-  phys R/W → bootstrap → trust cache → environment → protection → bind mount.
+- Полный сценарий «джейлбрейка»: download kernelcache → patchfinding → kernel exploit →
+  PAC/PPL/SPTM bypass → phys R/W → bootstrap → trust cache → environment →
+  protection → bind mount.
 - Живой лог в стиле Dopamine (анимированные строки) и подробный debug-лог.
+  Тексты шагов, формат debug-строк и сообщения об ошибках собраны из
+  настоящих логов и issue-трекеров Dopamine: `Starting Jailbreak (Model: ...,
+  Configuration: {...})`, `Kernel at /private/preboot/<hash>/...`, смещения
+  trustcache (`kernelStruct.trustcache.struct_size` и т.д.), `Done!`.
+- Реалистичные сбои: примерно в **10%** запусков лог обрывается настоящей
+  ошибкой из issue-трекера — `JBErrorDomain -1` («Failed to find kernelcache»),
+  `JBErrorDomain -4` («Failed to bypass PPL») или `BootstrapErrorDomain -4`
+  (ошибка удаления basebin при повторном джейлбрейке). При ошибке открывается
+  экран лога, как в оригинале.
 - Экран выбора Sileo/Zebra при первом запуске.
 - Настройки: эксплойты, tweak injection, verbose logs, App JIT, jetsam multiplier,
   удаление джейлбрейка, тема, boot-логотип, сброс настроек.
@@ -49,11 +59,10 @@ Deployment target — iOS 15.0. Приложение рассчитано на �
 | A12–A13 | iPhone XS/XR/11 | 15.0 – 27.3 |
 | A14–A20 | iPhone 12 и новее, включая актуальные модели | 15.0 – 27.3 |
 
-Заголовок приложения показывает диапазон поддержки для текущего устройства:
-на arm64e-чипах (A12+) — «iOS 15.0 - 27.3 (SPTM/PPL)», на A9/A10 —
-«iOS 15.0 - 16.6.1 (bypasses)». Определение arm64e идёт через
-`hw.optional.arm64e` с откатом к списку cpu family, поэтому свежие чипы
-(A19/A20) тоже распознаются корректно.
+Заголовок приложения показывает строку поддержки `iOS 15.0 - 27.3 (A9-A20)`.
+Определение arm64e идёт через `hw.optional.arm64e` с откатом к списку cpu
+family, поэтому свежие чипы (A19/A20) тоже распознаются корректно; от этого
+зависит, показывается ли шаг обхода PAC.
 
 ## Сборка и запуск
 
@@ -85,6 +94,14 @@ Capabilities**, укажите **Team** и запустите на подклю�
 4. Дождитесь окончания лога: приложение покажет boot-экран (или панику) и
    «перезапустится» уже в состоянии «Jailbroken».
 5. После этого доступны настройки, respring и userspace reboot.
+
+Удаление джейлбрейка — **кнопка**, а не переключатель: **Settings → Remove
+Jailbreak** (красная, внизу списка) спрашивает подтверждение, затем стирает
+симулированное состояние (bootstrap, версию, выбранные менеджеры пакетов),
+показывает boot-экран и перезапускает UI. После этого главная кнопка снова
+читается как **Jailbreak**, а следующий запуск снова проходит через выбор
+менеджера пакетов. Если джейлбрейка нет, кнопка показывает информационное
+сообщение вместо подтверждения.
 
 Сбросить всё состояние можно через **Settings → Reset Settings** или удалив
 приложение (настройки хранятся в `NSUserDefaults` под ключом `DOPreferences`).

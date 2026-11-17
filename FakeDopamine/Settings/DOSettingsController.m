@@ -19,6 +19,8 @@
 #import "DOPkgManagerPickerViewController.h"
 #import "DOCreditsViewController.h"
 #import "DOSceneDelegate.h"
+#import "DOBootScreenViewController.h"
+#import "DOJailbreaker.h"
 #import <objc/runtime.h>
 
 @interface DOOptionListController : UIViewController
@@ -41,6 +43,7 @@ typedef NS_ENUM(NSInteger, DORowKind) {
 @property (nonatomic, assign) DORowKind kind;
 @property (nonatomic, copy) NSString *preferenceKey;
 @property (nonatomic, assign) BOOL defaultOn;
+@property (nonatomic, strong) UIColor *textColor; // DORowButton override, nil = default green
 @property (nonatomic, copy) void (^onToggle)(BOOL);
 @property (nonatomic, copy) void (^onTap)(void);
 @end
@@ -210,21 +213,32 @@ typedef NS_ENUM(NSInteger, DORowKind) {
     };
     [jbSettings addObject:jetsam];
 
+    // Real button (not a toggle): pressing it removes the simulated
+    // jailbreak right away, and the main button turns back into "Jailbreak"
     DORow *remove = row(DOLocalizedString(@"Button_Remove_Jailbreak"), @"trash.fill");
-    remove.kind = DORowSwitch;
-    remove.preferenceKey = @"removeJailbreakEnabled";
-    remove.defaultOn = NO;
-    remove.onToggle = ^(BOOL on) {
-        if (!on)
+    remove.kind = DORowButton;
+    remove.textColor = [UIColor colorWithRed:1.0 green:0.27 blue:0.23 alpha:1.0];
+    remove.onTap = ^{
+        if (![[DOEnvironmentManager sharedManager] isJailbroken]) {
+            UIAlertController *info = [UIAlertController alertControllerWithTitle:DOLocalizedString(@"Alert_Remove_Not_Jailbroken_Title") message:DOLocalizedString(@"Alert_Remove_Not_Jailbroken_Body") preferredStyle:UIAlertControllerStyleAlert];
+            [info addAction:[UIAlertAction actionWithTitle:DOLocalizedString(@"Button_Close") style:UIAlertActionStyleDefault handler:nil]];
+            [weakSelf presentViewController:info animated:YES completion:nil];
             return;
+        }
 
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:DOLocalizedString(@"Alert_Remove_Jailbreak_Title") message:DOLocalizedString(@"Alert_Remove_Jailbreak_Enabled_Body") preferredStyle:UIAlertControllerStyleAlert];
-        [alert addAction:[UIAlertAction actionWithTitle:DOLocalizedString(@"Button_Continue") style:UIAlertActionStyleDestructive handler:nil]];
-        [alert addAction:[UIAlertAction actionWithTitle:DOLocalizedString(@"Button_Cancel") style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
-            [[DOPreferenceManager sharedManager] setPreferenceValue:@NO forKey:@"removeJailbreakEnabled"];
-            [weakSelf.table reloadData];
+        UIAlertController *confirm = [UIAlertController alertControllerWithTitle:DOLocalizedString(@"Alert_Remove_Jailbreak_Title") message:DOLocalizedString(@"Alert_Remove_Jailbreak_Pressed_Body") preferredStyle:UIAlertControllerStyleAlert];
+        [confirm addAction:[UIAlertAction actionWithTitle:DOLocalizedString(@"Button_Continue") style:UIAlertActionStyleDestructive handler:^(UIAlertAction * _Nonnull action) {
+            [DOJailbreaker removeSimulatedJailbreak];
+
+            // The removal ends with a userspace reboot, like the real app;
+            // after the relaunch the main button reads "Jailbreak" again
+            [DOBootScreenViewController presentBootWithDuration:4.0 completion:^{
+                [[DOEnvironmentManager sharedManager] performRealRespring];
+                [DOSceneDelegate relaunch];
+            }];
         }]];
-        [weakSelf presentViewController:alert animated:YES completion:nil];
+        [confirm addAction:[UIAlertAction actionWithTitle:DOLocalizedString(@"Button_Cancel") style:UIAlertActionStyleCancel handler:nil]];
+        [weakSelf presentViewController:confirm animated:YES completion:nil];
     };
     [jbSettings addObject:remove];
     [sections addObject:jbSettings];
@@ -378,7 +392,7 @@ typedef NS_ENUM(NSInteger, DORowKind) {
             break;
         case DORowButton:
             cell.textLabel.textAlignment = NSTextAlignmentCenter;
-            cell.textLabel.textColor = [UIColor colorWithRed:0.0 green:0.66 blue:0.53 alpha:1.0];
+            cell.textLabel.textColor = row.textColor ?: [UIColor colorWithRed:0.0 green:0.66 blue:0.53 alpha:1.0];
             break;
     }
 

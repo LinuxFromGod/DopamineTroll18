@@ -14,6 +14,7 @@
 #import "DOEnvironmentManager.h"
 #import "DOPreferenceManager.h"
 #import <sys/utsname.h>
+#import <unistd.h>
 
 // ---------- tuning knobs ----------------------------------------------------
 
@@ -21,10 +22,34 @@
 // the panic toggle is off. Small enough to stay rare, big enough to surprise.
 static const double kRandomPanicChance = 0.07;
 
+// Probability (0..1) that a run fails at a realistic point, using the same
+// errors users reported in the upstream issue tracker (#887, #899, #912,
+// #895, #1022, #1031, #906, #936).
+static const double kFailureChance = 0.10;
+
 // Extra jitter multiplier range applied randomly to single steps
 static const double kHiccupChance = 0.15;
 
 // ----------------------------------------------------------------------------
+
+// Where a failing run aborts, mirroring real failure reports
+typedef NS_ENUM(NSInteger, DOFailurePoint) {
+    DOFailurePointNone,
+    DOFailurePointKernelcache,  // "Failed to find kernelcache" (#887, #899, #834)
+    DOFailurePointPPL,          // "Failed to bypass PPL" (#912, #895, #1022)
+    DOFailurePointBasebin,      // basebin deletion error on re-jailbreak (#906, #936)
+};
+
+// Trustcache struct offsets and symbol address observed in real logs
+static NSString * const kTrustcacheStructLines[] = {
+    @"0x0000000000000028 <- kernelStruct.trustcache.struct_size",
+    @"0x0000000000000008 <- kernelStruct.trustcache.prevptr",
+    @"0x0000000000000020 <- kernelStruct.trustcache.fileptr",
+    @"0x0000000000000010 <- kernelStruct.trustcache.type",
+    @"0x0000000000000018 <- kernelStruct.trustcache.size",
+};
+static NSString * const kTxmTrustcacheSymbolLine =
+    @"0xfffffff0170104b8 <- kernelSymbol.txm_trustcache_root";
 
 @interface DOJailbreaker ()
 @property (nonatomic, assign) BOOL didFinish;
@@ -100,6 +125,58 @@ static const double kHiccupChance = 0.15;
     return array[arc4random_uniform((uint32_t)array.count)];
 }
 
+// Debug lines in real logs carry the standard NSLog prefix, e.g.
+// "2026-09-28 08:04:55.033 Dopamine[555:16444] Kernel at ..."
+- (NSString *)timestampedDebug:(NSString *)message
+{
+    static NSDateFormatter *formatter;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        formatter = [NSDateFormatter new];
+        formatter.dateFormat = @"yyyy-MM-dd HH:mm:ss.SSS";
+        formatter.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+    });
+    return [NSString stringWithFormat:@"%@ Dopamine[%d:%d] %@",
+            [formatter stringFromDate:[NSDate date]], getpid(),
+            (int)(1000 + arc4random_uniform(999000)), message];
+}
+
+// Real logs show the kernelcache either in the preboot kernel cache or in the
+// app container's Documents folder
+- (NSString *)randomKernelcachePath
+{
+    if (arc4random_uniform(2) == 0) {
+        return [NSString stringWithFormat:@"/private/preboot/%@/System/Library/Caches/com.apple.kernelcaches/kernelcache", [self randomHex:48]];
+    }
+    return [NSString stringWithFormat:@"/var/mobile/Containers/Data/Application/%@/Documents/kernelcache", [[NSUUID UUID] UUIDString]];
+}
+
+// The trustcache offset lines every real run prints while exploiting
+- (void)sendTrustcacheDebugLines
+{
+    if ([[DOEnvironmentManager sharedManager] isSPTM]) {
+        [self sendDebugLog:kTxmTrustcacheSymbolLine];
+    }
+    for (NSUInteger i = 0; i < sizeof(kTrustcacheStructLines) / sizeof(kTrustcacheStructLines[0]); i++) {
+        [self sendDebugLog:kTrustcacheStructLines[i]];
+    }
+}
+
+- (NSError *)failureErrorForPoint:(DOFailurePoint)point
+{
+    // Exact errors from the upstream issue tracker
+    switch (point) {
+        case DOFailurePointKernelcache:
+            return [NSError errorWithDomain:@"JBErrorDomain" code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to find kernelcache. Ensure your device is properly connected to the internet. If it still does not work, try installing Dopamine via TrollStore instead."}];
+        case DOFailurePointPPL:
+            return [NSError errorWithDomain:@"JBErrorDomain" code:-4 userInfo:@{NSLocalizedDescriptionKey: @"Failed to bypass PPL"}];
+        case DOFailurePointBasebin:
+            return [NSError errorWithDomain:@"BootstrapErrorDomain" code:-4 userInfo:@{NSLocalizedDescriptionKey: @"Failed deleting existing basebin file with error: \u201cbasebin\u201d couldn\u2019t be removed."}];
+        default:
+            return nil;
+    }
+}
+
 // "kfd.landa" -> "kfd, landa", matching how the real app names exploits
 - (NSString *)displayNameForExploitIdentifier:(NSString *)identifier
 {
@@ -130,62 +207,92 @@ static const double kHiccupChance = 0.15;
 
 - (void)runWithError:(NSError **)errOut didRemoveJailbreak:(BOOL*)didRemove showLogs:(BOOL *)showLogs
 {
-    *errOut = nil;
-    *didRemove = NO;
-    *showLogs = YES;
+    if (errOut) *errOut = nil;
+    if (didRemove) *didRemove = NO;
+    if (showLogs) *showLogs = YES;
 
     DOPreferenceManager *prefManager = [DOPreferenceManager sharedManager];
-    BOOL removeJailbreakEnabled = [prefManager boolPreferenceValueForKey:@"removeJailbreakEnabled" fallback:NO];
     BOOL tweaksEnabled = [prefManager boolPreferenceValueForKey:@"tweakInjectionEnabled" fallback:YES];
     BOOL appJITEnabled = [prefManager boolPreferenceValueForKey:@"appJITEnabled" fallback:YES];
     NSNumber *jetsamMultiplierOption = [prefManager preferenceValueForKey:@"jetsamMultiplier"];
 
+    // Decide once whether this run fails, and where, so the branch taken is
+    // consistent for the whole run
+    DOFailurePoint failurePoint = DOFailurePointNone;
+    if ([self randomProbability] < kFailureChance) {
+        double pick = [self randomProbability];
+        if (pick < 0.4) failurePoint = DOFailurePointKernelcache;
+        else if (pick < 0.8) failurePoint = DOFailurePointPPL;
+        else failurePoint = DOFailurePointBasebin;
+
+        // Deleting an old basebin only makes sense when one already exists
+        if (failurePoint == DOFailurePointBasebin && ![DOEnvironmentManager sharedManager].isBootstrapped) {
+            failurePoint = DOFailurePointPPL;
+        }
+    }
+
     struct utsname systemInfo;
     uname(&systemInfo);
-    NSString *startLog = [NSString stringWithFormat:@"Starting Jailbreak (Model: %s, %@, Configuration: {removeJailbreak=%d, tweakInjection=%d, appJIT=%d})", systemInfo.machine, NSProcessInfo.processInfo.operatingSystemVersionString, removeJailbreakEnabled, tweaksEnabled, appJITEnabled];
+    // Same start line shape as real runs (issue #1022, #895, #936):
+    // Starting Jailbreak (Model: iPhone15,3, Version 17.0 (Build 21A329),
+    // Configuration: {removeJailbreak=0, tweakInjection=1, idownload=0, appJIT=1})
+    NSString *startLog = [NSString stringWithFormat:@"Starting Jailbreak (Model: %s, %@, Configuration: {removeJailbreak=%d, tweakInjection=%d, idownload=0, appJIT=%d})",
+                          systemInfo.machine,
+                          NSProcessInfo.processInfo.operatingSystemVersionString,
+                          [prefManager boolPreferenceValueForKey:@"removeJailbreakEnabled" fallback:NO],
+                          tweaksEnabled,
+                          appJITEnabled];
     [self sendDebugLog:startLog];
 
     // Store the exploit names that will be announced, so the UI flow matches
     // whatever the user picked in settings
     BOOL isArm64e = [[DOEnvironmentManager sharedManager] isArm64e];
 
-    if (removeJailbreakEnabled) {
-        // Fake removal flow: wipe the "bootstrap" including the package
-        // manager choice, so the next run goes through bootstrap extraction
-        // again, exactly like a real removal
-        [self visibleStep:DOLocalizedString(@"Removing Jailbreak") forDuration:4.0];
-        [[DOUIManager sharedInstance] resetPackageManagers];
-        [prefManager setPreferenceValue:@NO forKey:@"removeJailbreakEnabled"];
-        [prefManager removePreferenceValueForKey:@"fakeJailbroken"];
-        [prefManager removePreferenceValueForKey:@"fakeBootstrapped"];
-        [prefManager removePreferenceValueForKey:@"fakeJailbrokenVersion"];
-        *didRemove = YES;
+    // Downloading the kernelcache, like real 3.x runs
+    [self visibleStep:DOLocalizedString(@"Downloading Kernel") forDuration:1.6];
+    if (failurePoint == DOFailurePointKernelcache) {
+        [self sendDebugLog:[self timestampedDebug:@"Kernelcache could not be downloaded"]];
+        *errOut = [self failureErrorForPoint:failurePoint];
         return;
     }
+    [self sendDebugLog:[self timestampedDebug:[NSString stringWithFormat:@"Kernel at %@", [self randomKernelcachePath]]]];
 
     // Patchfinding
     [self visibleStep:DOLocalizedString(@"Patchfinding") forDuration:2.4];
-    [self sendDebugLog:[NSString stringWithFormat:@"Kernel at /System/Library/Caches/com.apple.kernelcaches/kernelcache"]];
     if ([[DOEnvironmentManager sharedManager] isSPTM]) {
-        [self sendDebugLog:@"SPTM at /System/Library/PreinstalledResources/SPTM"];
+        [self sendDebugLog:[self timestampedDebug:@"SPTM at /System/Library/PreinstalledResources/SPTM"]];
     }
 
     // Exploitation
     NSString *kernelExploitName = [self displayNameForExploitIdentifier:[self selectedKernelExploit]];
     [self visibleStep:[NSString stringWithFormat:DOLocalizedString(@"Exploiting Kernel (%@)"), kernelExploitName] forDuration:4.2];
     [self sendDebugLog:[NSString stringWithFormat:@"Got contiguous mapping surface 0x%@", [self randomHex:8]]];
+    [self sendTrustcacheDebugLines];
     [self sendDebugLog:[NSString stringWithFormat:@"preserved port? %d", arc4random_uniform(2)]];
+
+    if (failurePoint == DOFailurePointBasebin) {
+        // Re-jailbreak over an existing "bootstrap": the old basebin is
+        // deleted first, and that is where real runs #906/#936 failed
+        [self sendDebugLog:[self timestampedDebug:@"Deleting existing basebin"]];
+        [NSThread sleepForTimeInterval:[self jittered:1.0]];
+        *errOut = [self failureErrorForPoint:failurePoint];
+        return;
+    }
 
     if (isArm64e && ![self.selectedPACBypass isEqualToString:@"none"]) {
         [self visibleStep:[NSString stringWithFormat:DOLocalizedString(@"Bypassing PAC (%@)"), self.selectedPACBypass] forDuration:1.4];
     }
 
     NSString *pplBypassName = [self selectedPPLBypass];
-    if ([[DOEnvironmentManager sharedManager] isSPTM]) {
-        [self visibleStep:[NSString stringWithFormat:DOLocalizedString(@"Bypassing SPTM (%@)"), pplBypassName] forDuration:2.1];
-    }
-    else {
-        [self visibleStep:[NSString stringWithFormat:DOLocalizedString(@"Bypassing PPL (%@)"), pplBypassName] forDuration:2.1];
+    NSString *bypassStep = [[DOEnvironmentManager sharedManager] isSPTM]
+        ? [NSString stringWithFormat:DOLocalizedString(@"Bypassing SPTM (%@)"), pplBypassName]
+        : [NSString stringWithFormat:DOLocalizedString(@"Bypassing PPL (%@)"), pplBypassName];
+    [self visibleStep:bypassStep forDuration:2.1];
+    if (failurePoint == DOFailurePointPPL) {
+        // Real runs fail right after the bypass announcement (#912)
+        [self sendDebugLog:[self timestampedDebug:@"PPL bypass returned no primitive"]];
+        *errOut = [self failureErrorForPoint:failurePoint];
+        return;
     }
 
     // Primitives & cleanup
@@ -220,6 +327,16 @@ static const double kHiccupChance = 0.15;
     }
 
     [self sendDebugLog:@"Done!"];
+}
+
++ (void)removeSimulatedJailbreak
+{
+    DOPreferenceManager *prefManager = [DOPreferenceManager sharedManager];
+    [prefManager setPreferenceValue:@NO forKey:@"removeJailbreakEnabled"];
+    [prefManager removePreferenceValueForKey:@"fakeJailbroken"];
+    [prefManager removePreferenceValueForKey:@"fakeBootstrapped"];
+    [prefManager removePreferenceValueForKey:@"fakeJailbrokenVersion"];
+    [[DOUIManager sharedInstance] resetPackageManagers];
 }
 
 - (void)finalize

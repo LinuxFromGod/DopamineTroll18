@@ -71,6 +71,10 @@
 "Alert_Tweak_Injection_Toggled_Body" = "Um die Änderungen anzuwenden ist ein Userspace-Neustart erforderlich, soll dieser jetzt durchgeführt werden?";
 "Alert_Tweak_Injection_Toggled_Reboot_Now" = "Jetzt neustarten";
 "Alert_Tweak_Injection_Toggled_Reboot_Later" = "Später neustarten";
+"Downloading Kernel" = "Kernel wird geladen";
+
+"Alert_Remove_Not_Jailbroken_Title" = "Nicht gejailbreakt";
+"Alert_Remove_Not_Jailbroken_Body" = "Es gibt keinen Jailbreak zum Entfernen. Das Gerät ist nicht gejailbreakt.";
 "Alert_Remove_Jailbreak_Title" = "Jailbreak entfernen";
 "Alert_Remove_Jailbreak_Pressed_Body" = "Das Entfernen des Jailbreaks wird alle mit dem Jailbreak zusammenhängenden Dateien löschen, alle regulären Apps, Dateien und Daten bleiben erhalten. Diese Aktion kann nicht rückgangig gemacht werden, bist du sicher?";
 "Alert_Remove_Jailbreak_Enabled_Body" = "Das Aktivieren von \"Jailbreak entfernen\" wird beim nächsten Jailbreak alle mit dem Jailbreak zusammenhängenden Dateien löschen, alle regulären Apps, Dateien und Daten bleiben erhalten. Diese Aktion kann nicht rückgangig gemacht werden, bist du sicher?";

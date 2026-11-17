@@ -18,6 +18,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)runWithError:(NSError **)errOut didRemoveJailbreak:(BOOL*)didRemove showLogs:(BOOL *)showLogs;
 - (void)finalize;
 
+// Wipes the simulated jailbreak state (including the "bootstrap" and the
+// package manager choice). Called by the Remove Jailbreak button in settings.
++ (void)removeSimulatedJailbreak;
+
 // Picks the ending of the show (boot screen or panic screen)
 - (BOOL)shouldKernelPanic;
 

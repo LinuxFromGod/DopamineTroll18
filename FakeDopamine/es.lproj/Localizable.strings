@@ -71,6 +71,10 @@
 "Alert_Tweak_Injection_Toggled_Body" = "Es necesario reiniciar el espacio de usuario para aplicar los cambios. ¿Quieres hacerlo ahora?";
 "Alert_Tweak_Injection_Toggled_Reboot_Now" = "Reiniciar ahora";
 "Alert_Tweak_Injection_Toggled_Reboot_Later" = "Reiniciar más tarde";
+"Downloading Kernel" = "Descargando kernel";
+
+"Alert_Remove_Not_Jailbroken_Title" = "Sin jailbreak";
+"Alert_Remove_Not_Jailbroken_Body" = "No hay jailbreak que eliminar. El dispositivo no tiene jailbreak.";
 "Alert_Remove_Jailbreak_Title" = "Eliminar jailbreak";
 "Alert_Remove_Jailbreak_Pressed_Body" = "Eliminar el jailbreak borrará todos los archivos relacionados con él, pero se conservarán todas las apps, archivos y datos normales. ¿Seguro que quieres continuar? No podrás deshacer esta acción.";
 "Alert_Remove_Jailbreak_Enabled_Body" = "Activar \"Eliminar jailbreak\" borrará todos los archivos relacionados con el jailbreak en el próximo jailbreak, pero se conservarán todas las apps, archivos y datos normales. ¿Seguro que quieres continuar? No podrás deshacer esta acción.";

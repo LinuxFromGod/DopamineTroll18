@@ -173,16 +173,13 @@
 {
     BOOL isJailbroken = [[DOEnvironmentManager sharedManager] isJailbroken];
     BOOL isSupported = [[DOEnvironmentManager sharedManager] isSupported];
-    BOOL removeJailbreakEnabled = [[DOPreferenceManager sharedManager] boolPreferenceValueForKey:@"removeJailbreakEnabled" fallback:NO];
 
     NSString *jailbreakButtonTitle = DOLocalizedString(@"Button_Jailbreak_Title");
     if (!isSupported)
         jailbreakButtonTitle = DOLocalizedString(@"Unsupported");
     else if (isJailbroken)
         jailbreakButtonTitle = DOLocalizedString(@"Status_Title_Jailbroken");
-    else if (removeJailbreakEnabled)
-        jailbreakButtonTitle = DOLocalizedString(@"Button_Remove_Jailbreak");
-    
+
     return jailbreakButtonTitle;
 }
 
@@ -209,23 +206,11 @@
         [jailbreaker runWithError:&error didRemoveJailbreak:&didRemove showLogs:&showLogs];
         dispatch_async(dispatch_get_main_queue(), ^{
             if (error && showLogs) {
-                [[DOUIManager sharedInstance] sendLog:[NSString stringWithFormat:@"Jailbreak failed with error: %@", error] debug:NO];
+                // NSError's own description has the same shape a real
+                // NSLogged error has in the issue reports:
+                // Error Domain=JBErrorDomain Code=-1 "Failed to find kernelcache..." ...
+                [[DOUIManager sharedInstance] sendLog:[NSString stringWithFormat:@"%@", error] debug:YES];
                 [self.navigationController pushViewController:[[DOLogCrashViewController alloc] initWithTitle:[error localizedDescription]] animated:YES];
-            }
-            else if (didRemove) {
-                UIAlertController *alertController = [UIAlertController alertControllerWithTitle:DOLocalizedString(@"Removed_Jailbreak_Alert_Title") message:DOLocalizedString(@"Removed_Jailbreak_Alert_Message") preferredStyle:UIAlertControllerStyleAlert];
-                UIAlertAction *rebootAction = [UIAlertAction actionWithTitle:DOLocalizedString(@"Button_Close") style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-                    // The removal ends with a userspace reboot, like the real
-                    // app; real respring where the environment allows it
-                    [DOBootScreenViewController presentBootWithDuration:4.0 completion:^{
-                        // Real respring where possible, then rebuild the UI
-                        // so the app looks right after either path
-                        [[DOEnvironmentManager sharedManager] performRealRespring];
-                        [DOSceneDelegate relaunch];
-                    }];
-                }];
-                [alertController addAction:rebootAction];
-                [self presentViewController:alertController animated:YES completion:nil];
             }
             else {
                 // No errors

@@ -64,6 +64,10 @@
 "Alert_Tweak_Injection_Toggled_Body" = "Un redémarrage de l'espace utilisateur est nécessaire pour appliquer les changements. Voulez-vous le faire maintenant ?";
 "Alert_Tweak_Injection_Toggled_Reboot_Now" = "Redémarrer maintenant";
 "Alert_Tweak_Injection_Toggled_Reboot_Later" = "Redémarrer plus tard";
+"Downloading Kernel" = "Téléchargement du noyau";
+
+"Alert_Remove_Not_Jailbroken_Title" = "Pas de jailbreak";
+"Alert_Remove_Not_Jailbroken_Body" = "Il n’y a aucun jailbreak à supprimer. L’appareil n’est pas jailbreaké.";
 "Alert_Remove_Jailbreak_Title" = "Supprimer le jailbreak";
 "Alert_Remove_Jailbreak_Pressed_Body" = "La suppression du jailbreak effacera tous les fichiers liés au jailbreak, mais toutes les applications, fichiers et données habituels seront conservés. Êtes-vous sûr de vouloir continuer ? Vous ne pouvez pas annuler cette action.";
 "Alert_Remove_Jailbreak_Enabled_Body" = "L'activation de cette option supprimera tous les fichiers liés au jailbreak au prochain jailbreak. Toutes les applications, fichiers et données habituels seront conservés. Êtes-vous sûr de vouloir continuer ?";
