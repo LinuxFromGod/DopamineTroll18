@@ -15,17 +15,29 @@
 @property (nonatomic, assign) NSTimeInterval duration;
 @property (nonatomic, copy) void (^completionBlock)(void);
 @property (nonatomic, strong) UIWindow *overlayWindow;
+@property (nonatomic, assign) BOOL respringMode; // spinner on black instead of logo + progress
 @end
 
 @implementation DOBootScreenViewController
 
 + (void)presentBootWithDuration:(NSTimeInterval)duration completion:(void(^)(void))completion
 {
+    [self presentOverlayWithDuration:duration completion:completion respringMode:NO];
+}
+
++ (void)presentRespringWithDuration:(NSTimeInterval)duration completion:(void(^)(void))completion
+{
+    [self presentOverlayWithDuration:duration completion:completion respringMode:YES];
+}
+
++ (void)presentOverlayWithDuration:(NSTimeInterval)duration completion:(void(^)(void))completion respringMode:(BOOL)respringMode
+{
     UIWindowScene *windowScene = (UIWindowScene *)[[[UIApplication sharedApplication] connectedScenes] anyObject];
 
     DOBootScreenViewController *bootVC = [[self alloc] init];
     bootVC.duration = duration;
     bootVC.completionBlock = completion;
+    bootVC.respringMode = respringMode;
 
     UIWindow *window = [[UIWindow alloc] initWithWindowScene:windowScene];
     window.rootViewController = bootVC;
@@ -45,6 +57,27 @@
     [super viewDidLoad];
     self.view.backgroundColor = [UIColor blackColor];
     self.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
+
+    if (self.respringMode) {
+        // iOS respring look: nothing but a white system spinner on black
+        UIActivityIndicatorView *spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
+        spinner.color = [UIColor whiteColor];
+        spinner.translatesAutoresizingMaskIntoConstraints = NO;
+        [spinner startAnimating];
+        [self.view addSubview:spinner];
+
+        [NSLayoutConstraint activateConstraints:@[
+            [spinner.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
+            [spinner.centerYAnchor constraintEqualToAnchor:self.view.centerYAnchor],
+        ]];
+
+        // The gear spins for the whole respring, then the UI "relaunches"
+        __weak typeof(self) weakSelf = self;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(self.duration * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [weakSelf finish];
+        });
+        return;
+    }
 
     BOOL bootlogoEnabled = [[DOUIManager sharedInstance] isBootlogoEnabled];
 

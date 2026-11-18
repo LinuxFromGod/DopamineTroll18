@@ -34,6 +34,7 @@
 "Button_Close" = "Schließen";
 
 // Error View
+"Button_Copy" = "Kopieren";
 "Button_Share" = "Teilen";
 "Button_Reboot" = "Neustarten";
 

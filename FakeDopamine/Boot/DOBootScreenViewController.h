@@ -16,6 +16,11 @@ NS_ASSUME_NONNULL_BEGIN
 // lasting `duration` seconds, then calls completion on the main queue.
 + (void)presentBootWithDuration:(NSTimeInterval)duration completion:(void(^)(void))completion;
 
+// Presents a fullscreen overlay window that looks like an iOS respring:
+// black background with a white system spinner in the middle, lasting
+// `duration` seconds, then calls completion on the main queue.
++ (void)presentRespringWithDuration:(NSTimeInterval)duration completion:(void(^)(void))completion;
+
 @end
 
 NS_ASSUME_NONNULL_END

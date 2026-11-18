@@ -33,6 +33,7 @@
 "Button_Close" = "Close";
 
 // Error View
+"Button_Copy" = "Copy";
 "Button_Share" = "Share";
 "Button_Reboot" = "Reboot";
 

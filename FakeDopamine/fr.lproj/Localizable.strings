@@ -34,6 +34,7 @@
 "Button_Close" = "Ok";
 
 // Error View
+"Button_Copy" = "Copier";
 "Button_Share" = "Partager";
 "Button_Reboot" = "Redémarrer";
 
@@ -53,7 +54,7 @@
 
 // Settings Hints
 "Hint_Hide_Jailbreak" = "Le mode \"Jailbreak masqué\" enlève temporairement les fichiers liés au jailbreak jusqu'au prochain jailbreak.";
-/*Hint_Hide_Jailbreak_Jailbroken*/
+"Hint_Hide_Jailbreak_Jailbroken" = "\"Masquer le jailbreak\" peut servir à désactiver temporairement le jailbreak pour contourner certaines méthodes de détection. Ce n’est pas efficace à 100% et ne masque pas tout, mais l’appareil devrait se retrouver dans un état proche de celui qui suit un redémarrage avant de rejailbreaker. Ce n’est pas un substitut valable à RootHide. Cette option est offerte sans aucun support et peut causer des problèmes, utilisez-la à vos propres risques.";
 "Section_Jailbreak_Settings" = "Paramètres du jailbreak";
 "Section_Actions" = "Actions";
 "Section_Customization" = "Personnalisation";

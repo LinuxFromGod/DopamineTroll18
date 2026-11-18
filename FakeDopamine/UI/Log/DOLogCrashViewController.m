@@ -49,14 +49,29 @@
         [[DOUIManager sharedInstance] shareLogRecordFromView:shareButton];
     }];
     shareButton = [DOActionMenuButton buttonWithAction:shareAction chevron:NO];
-    
-    shareButton.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:shareButton];
+
+    UIAction *copyAction = [UIAction actionWithTitle:DOLocalizedString(@"Button_Copy") image:[UIImage systemImageNamed:@"doc.on.doc" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]] identifier:@"copy" handler:^(__kindof UIAction * _Nonnull action) {
+        NSArray *log = [[DOUIManager sharedInstance] logRecord];
+        if (log.count > 0) {
+            [UIPasteboard generalPasteboard].string = [log componentsJoinedByString:@"\n"];
+        }
+    }];
+    DOActionMenuButton *copyButton = [DOActionMenuButton buttonWithAction:copyAction chevron:NO];
+
+    UIStackView *buttonsStack = [[UIStackView alloc] init];
+    buttonsStack.axis = UILayoutConstraintAxisHorizontal;
+    buttonsStack.spacing = 12;
+    buttonsStack.alignment = UIStackViewAlignmentCenter;
+    [buttonsStack addArrangedSubview:shareButton];
+    [buttonsStack addArrangedSubview:copyButton];
+
+    buttonsStack.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:buttonsStack];
 
     [NSLayoutConstraint activateConstraints:@[
-        [shareButton.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
-        [shareButton.heightAnchor constraintEqualToConstant:30],
-        [shareButton.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-30]
+        [buttonsStack.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
+        [buttonsStack.heightAnchor constraintEqualToConstant:30],
+        [buttonsStack.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor constant:-30]
     ]];
     
     if (@available(iOS 16.0, *)) {

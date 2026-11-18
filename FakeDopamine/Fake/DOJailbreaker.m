@@ -336,13 +336,16 @@ static NSString * const kTxmTrustcacheSymbolLine =
     [prefManager removePreferenceValueForKey:@"fakeJailbroken"];
     [prefManager removePreferenceValueForKey:@"fakeBootstrapped"];
     [prefManager removePreferenceValueForKey:@"fakeJailbrokenVersion"];
+    [[DOEnvironmentManager sharedManager] setJailbreakHidden:NO];
     [[DOUIManager sharedInstance] resetPackageManagers];
 }
 
 - (void)finalize
 {
     // Called right after fadeToBlack: the real app userspace-reboots here,
-    // the simulation hands over to the boot/panic screens
+    // the simulation hands over to the boot/panic screens. A successful run
+    // also lifts "Hide Jailbreak", like a real rejailbreak does.
+    [[DOEnvironmentManager sharedManager] setJailbreakHidden:NO];
     [[DOEnvironmentManager sharedManager] setJailbroken:YES withVersion:nil];
     self.didFinish = YES;
 }

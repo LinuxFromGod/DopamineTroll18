@@ -213,6 +213,36 @@ typedef NS_ENUM(NSInteger, DORowKind) {
     };
     [jbSettings addObject:jetsam];
 
+    // Hide Jailbreak, like the real Dopamine button: temporarily disables the
+    // jailbreak (state becomes "rebooted"), but keeps the bootstrap, so the
+    // next jailbreak is fast and skips bootstrap extraction
+    DORow *hide = row(DOLocalizedString(@"Button_Hide_Jailbreak"), @"eye.slash");
+    hide.kind = DORowButton;
+    hide.onTap = ^{
+        if (![[DOEnvironmentManager sharedManager] isJailbroken]) {
+            UIAlertController *info = [UIAlertController alertControllerWithTitle:DOLocalizedString(@"Button_Hide_Jailbreak") message:DOLocalizedString(@"Alert_Remove_Not_Jailbroken_Body") preferredStyle:UIAlertControllerStyleAlert];
+            [info addAction:[UIAlertAction actionWithTitle:DOLocalizedString(@"Button_Close") style:UIAlertActionStyleDefault handler:nil]];
+            [weakSelf presentViewController:info animated:YES completion:nil];
+            return;
+        }
+
+        UIAlertController *confirm = [UIAlertController alertControllerWithTitle:DOLocalizedString(@"Button_Hide_Jailbreak") message:DOLocalizedString(@"Hint_Hide_Jailbreak_Jailbroken") preferredStyle:UIAlertControllerStyleAlert];
+        [confirm addAction:[UIAlertAction actionWithTitle:DOLocalizedString(@"Button_Continue") style:UIAlertActionStyleDestructive handler:^(UIAlertAction * _Nonnull action) {
+            // "Hidden" until the next jailbreak, exactly like the real option
+            [[DOEnvironmentManager sharedManager] setJailbreakHidden:YES];
+            [[DOEnvironmentManager sharedManager] setJailbroken:NO withVersion:nil];
+
+            // Disabling takes effect like a userspace reboot
+            [DOBootScreenViewController presentBootWithDuration:3.5 completion:^{
+                [[DOEnvironmentManager sharedManager] performRealRespring];
+                [DOSceneDelegate relaunch];
+            }];
+        }]];
+        [confirm addAction:[UIAlertAction actionWithTitle:DOLocalizedString(@"Button_Cancel") style:UIAlertActionStyleCancel handler:nil]];
+        [weakSelf presentViewController:confirm animated:YES completion:nil];
+    };
+    [jbSettings addObject:hide];
+
     // Real button (not a toggle): pressing it removes the simulated
     // jailbreak right away, and the main button turns back into "Jailbreak"
     DORow *remove = row(DOLocalizedString(@"Button_Remove_Jailbreak"), @"trash.fill");
@@ -371,6 +401,7 @@ typedef NS_ENUM(NSInteger, DORowKind) {
     cell.textLabel.textAlignment = NSTextAlignmentNatural;
     cell.imageView.image = [UIImage systemImageNamed:row.icon withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]];
     cell.imageView.tintColor = [UIColor colorWithWhite:1.0 alpha:0.8];
+    cell.imageView.hidden = NO; // reused cells may come from a DORowButton
     cell.selectionStyle = UITableViewCellSelectionStyleNone;
     cell.accessoryView = nil;
     cell.accessoryType = UITableViewCellAccessoryNone;
@@ -391,6 +422,10 @@ typedef NS_ENUM(NSInteger, DORowKind) {
             cell.tintColor = [UIColor colorWithWhite:1.0 alpha:0.6];
             break;
         case DORowButton:
+            // Like the real Dopamine action buttons: centered colored text,
+            // no icon, no accessory
+            cell.imageView.image = nil;
+            cell.imageView.hidden = YES;
             cell.textLabel.textAlignment = NSTextAlignmentCenter;
             cell.textLabel.textColor = row.textColor ?: [UIColor colorWithRed:0.0 green:0.66 blue:0.53 alpha:1.0];
             break;

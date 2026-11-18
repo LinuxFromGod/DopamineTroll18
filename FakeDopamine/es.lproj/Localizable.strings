@@ -34,6 +34,7 @@
 "Button_Close" = "Cerrar";
 
 // Vista de error
+"Button_Copy" = "Copiar";
 "Button_Share" = "Compartir";
 "Button_Reboot" = "Reiniciar";
 
@@ -55,7 +56,7 @@
 
 // Sugerencias de ajustes
 "Hint_Hide_Jailbreak" = "\"Ocultar jailbreak\" elimina temporalmente los archivos relacionados con el jailbreak hasta el próximo rejailbreak";
-/*Hint_Hide_Jailbreak_Jailbroken*/
+"Hint_Hide_Jailbreak_Jailbroken" = "\"Ocultar jailbreak\" se puede usar para desactivar temporalmente el jailbreak y pasar ciertos métodos de detección. No es 100% efectivo ni lo oculta todo, pero debería dejar el dispositivo en un estado similar al que tiene tras un reinicio antes de volver a hacer jailbreak. No es un sustituto adecuado de RootHide. Esta opción no ofrece ningún soporte y puede causar problemas, úsala bajo tu propia responsabilidad.";
 "Section_Jailbreak_Settings" = "Ajustes de jailbreak";
 "Section_Actions" = "Acciones";
 "Section_Customization" = "Personalización";

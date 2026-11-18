@@ -95,11 +95,13 @@
         [UIAction actionWithTitle:DOLocalizedString(@"Menu_Restart_SpringBoard_Title") image:[UIImage systemImageNamed:@"arrow.clockwise" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]] identifier:@"respring" handler:^(__kindof UIAction * _Nonnull action) {
             [self fadeToBlack:^{
                 // Real respring where the environment allows signaling
-                // SpringBoard (TrollStore/jailbreak); the simulated relaunch
-                // still runs so the app comes back looking normal after the
-                // respring
+                // SpringBoard (TrollStore/jailbreak); the iOS-style overlay
+                // (black screen, white spinner) still runs so the app comes
+                // back looking normal after the respring
                 [[DOEnvironmentManager sharedManager] performRealRespring];
-                [self simulateRespring];
+                [DOBootScreenViewController presentRespringWithDuration:2.4 completion:^{
+                    [DOSceneDelegate relaunch];
+                }];
             }];
         }],
         [UIAction actionWithTitle:DOLocalizedString(@"Menu_Reboot_Userspace_Title") image:[UIImage systemImageNamed:@"arrow.clockwise.circle" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]] identifier:@"reboot-userspace" handler:^(__kindof UIAction * _Nonnull action) {
@@ -252,14 +254,6 @@
         double duration = 5.0 + ((double)arc4random() / UINT32_MAX) * 4.0;
         [DOBootScreenViewController presentBootWithDuration:duration completion:relaunchBlock];
     }
-}
-
-// Fake respring: window fades out, brief black, then the UI relaunches
-- (void)simulateRespring
-{
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (1.2 + ((double)arc4random() / UINT32_MAX) * 1.5) * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        [DOSceneDelegate relaunch];
-    });
 }
 
 - (void)fadeToBlack:(void (^)(void))completion
