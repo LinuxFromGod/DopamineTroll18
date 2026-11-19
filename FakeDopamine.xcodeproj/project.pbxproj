@@ -50,6 +50,8 @@
 		180564DFC0F31EF9CA4D86D9 /* Themes.plist in Resources */ = {isa = PBXBuildFile; fileRef = 769C2DC4C7052850825B0E01; };
 		1FFC5B966FC854DBF018CCDE /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = BB500EBACD5156957629616F; };
 		CC2ED365FBCB9F0FADF054A7 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1377D35B74EE78B77EC16B73; };
+		A11CE5E60000000000000001 /* DOLocalRespringServer.m in Sources */ = {isa = PBXBuildFile; fileRef = A11CE5E60000000000000002; };
+		A11CE5E60000000000000004 /* WebRespring.html in Resources */ = {isa = PBXBuildFile; fileRef = A11CE5E60000000000000005; };
 		229685D5878B16A1D6D09EAB /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BCB206696E3D771924034FC1; };
 		83BE8F115C7BE6B5419B5AF8 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67061963CC5526B9BC251B4F; };
 		5E23D409A3A8FD2BFB12F340 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3A68B90C9422F4B4B83A76C4; };
@@ -108,6 +110,9 @@
 		8C28BD60D7F53A8BED3A2F7B /* UIImage+JPEG2000.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UIImage+JPEG2000.h"; sourceTree = "<group>"; };
 		72E7B856EAB2CDF7BAA70CD8 /* DOEnvironmentManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DOEnvironmentManager.h"; sourceTree = "<group>"; };
 		3DD0A722765CF0E20AADDB84 /* DOJailbreaker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DOJailbreaker.h"; sourceTree = "<group>"; };
+		A11CE5E60000000000000003 /* DOLocalRespringServer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DOLocalRespringServer.h; sourceTree = "<group>"; };
+		A11CE5E60000000000000002 /* DOLocalRespringServer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DOLocalRespringServer.m; sourceTree = "<group>"; };
+		A11CE5E60000000000000005 /* WebRespring.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = WebRespring.html; sourceTree = "<group>"; };
 		8533C79477F1E65337A42831 /* DOPreferenceManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DOPreferenceManager.h"; sourceTree = "<group>"; };
 		B35402BF1EEC17F67AD8734D /* DOCreditsViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DOCreditsViewController.h"; sourceTree = "<group>"; };
 		74CE1C43287600F992786B5E /* DOSettingsController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DOSettingsController.h"; sourceTree = "<group>"; };
@@ -302,6 +307,8 @@
 				8533C79477F1E65337A42831,
 				A053D1736E05FF6D82304E75,
 				D7A3B2DE1574EB1AA1AA7615,
+				A11CE5E60000000000000003,
+				A11CE5E60000000000000002,
 			);
 			path = "Fake";
 			sourceTree = "<group>";
@@ -443,6 +450,7 @@
 				180564DFC0F31EF9CA4D86D9 /* Themes.plist in Resources */,
 				1FFC5B966FC854DBF018CCDE /* Localizable.strings in Resources */,
 				CC2ED365FBCB9F0FADF054A7 /* LaunchScreen.storyboard in Resources */,
+				A11CE5E60000000000000004 /* WebRespring.html in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -464,6 +472,7 @@
 				D39B9A53810D372CD8B92E81 /* UIImage+JPEG2000.m in Sources */,
 				D799126B305E1E8667B1DE29 /* DOEnvironmentManager.m in Sources */,
 				E622AD62BEA006CB6526E649 /* DOJailbreaker.m in Sources */,
+				A11CE5E60000000000000001 /* DOLocalRespringServer.m in Sources */,
 				505CD1A557FE3DCC36AE1F47 /* DOPreferenceManager.m in Sources */,
 				F21BA495C5F54CA46FCEC359 /* DOCreditsViewController.m in Sources */,
 				7D2F90D763041431AB336EDB /* DOSettingsController.m in Sources */,

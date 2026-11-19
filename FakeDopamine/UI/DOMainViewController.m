@@ -16,6 +16,7 @@
 #import "DOPanicScreenViewController.h"
 #import "DOPreferenceManager.h"
 #import "DOSceneDelegate.h"
+#import "DOLocalRespringServer.h"
 #import <pthread.h>
 
 @interface DOMainViewController ()
@@ -94,11 +95,18 @@
         }],
         [UIAction actionWithTitle:DOLocalizedString(@"Menu_Restart_SpringBoard_Title") image:[UIImage systemImageNamed:@"arrow.clockwise" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]] identifier:@"respring" handler:^(__kindof UIAction * _Nonnull action) {
             [self fadeToBlack:^{
-                // Real respring where the environment allows signaling
-                // SpringBoard (TrollStore/jailbreak); the iOS-style overlay
-                // (black screen, white spinner) still runs so the app comes
-                // back looking normal after the respring
+                // Respring ladder, most real first:
+                // 1. Direct SIGKILL to SpringBoard - works under TrollStore or
+                //    a real jailbreak where signaling other processes is allowed
                 [[DOEnvironmentManager sharedManager] performRealRespring];
+
+                // 2. WebRespring payload in Safari: a loopback server in the
+                //    app serves the page, Safari opens it and its WebKit
+                //    compositing/memory pressure takes SpringBoard down on
+                //    stock devices. Serves also as the visible fallback
+                //    (black screen + spinner) when neither path applies.
+                [self triggerWebRespring];
+
                 [DOBootScreenViewController presentRespringWithDuration:2.4 completion:^{
                     [DOSceneDelegate relaunch];
                 }];
@@ -254,6 +262,24 @@
         double duration = 5.0 + ((double)arc4random() / UINT32_MAX) * 4.0;
         [DOBootScreenViewController presentBootWithDuration:duration completion:relaunchBlock];
     }
+}
+
+// Serves the bundled WebRespring page on 127.0.0.1 and hands it to Safari.
+// The payload only works from Safari's own WebKit context, which is also
+// where it was verified, so the app just opens the URL and gets out of the way.
+- (void)triggerWebRespring
+{
+    NSString *path = [[NSBundle mainBundle] pathForResource:@"WebRespring" ofType:@"html"];
+    NSString *html = path ? [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil] : nil;
+    if (!html)
+        return;
+
+    DOLocalRespringServer *server = [DOLocalRespringServer sharedServer];
+    if (![server startWithHTML:html] || !server.url)
+        return;
+
+    [[DOUIManager sharedInstance] sendLog:[NSString stringWithFormat:@"Respring helper at %@", server.url] debug:YES];
+    [[UIApplication sharedApplication] openURL:server.url options:@{} completionHandler:nil];
 }
 
 - (void)fadeToBlack:(void (^)(void))completion
